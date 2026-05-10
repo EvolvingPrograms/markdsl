@@ -146,6 +146,57 @@ export function fieldLabel(key: string, schema: Schema | undefined): string {
   return deriveLabel(key);
 }
 
+/** Read `entry.article` defensively: a literal `false` means "no
+ *  article" (proper-noun rendering), a string is used verbatim, and
+ *  anything else (`true`, missing) means "the schema didn't decide —
+ *  let the caller default." */
+function readArticle(field: boolean | string | undefined): string | null | undefined {
+  if (field === false) return null;
+  if (typeof field === 'string') return field;
+  return undefined;
+}
+
+/** Article a defined-term reference should emit, with bidirectional and
+ *  plural-aware resolution.
+ *
+ *  **Opt-in policy:** returns `null` unless the schema explicitly sets
+ *  `article:` on the (possibly-bidirectional) entry. Letting the schema
+ *  drive article choice gives O(1) flips ("a Recording" → "an
+ *  Recording" by editing one field), but the default has to stay quiet
+ *  so plain-prose markers like `{{Customer}}` don't suddenly grow
+ *  articles.
+ *
+ *  Resolution:
+ *    direct hit         → entry.article
+ *    plural side (bi)   → entry.plural_article ?? entry.article
+ *    singular side (bi) → entry.article
+ *
+ *  Returns:
+ *    null    → no article (default, or explicit `article: false`)
+ *    string  → that article ('a' / 'an' / 'the' / 'such' / …) */
+export function termArticle(key: string, schema: Schema | undefined): string | null {
+  if (!schema) return null;
+
+  const direct = schema[key];
+  if (typeof direct === 'object' && direct !== null) {
+    return readArticle(direct.article) ?? null;
+  }
+
+  const bi = resolveBidirectional(key, schema);
+  if (bi) {
+    const { entry, asPlural } = bi;
+    if (typeof entry === 'object' && entry !== null) {
+      if (asPlural) {
+        const pa = readArticle(entry.plural_article);
+        if (pa !== undefined) return pa;
+      }
+      const a = readArticle(entry.article);
+      if (a !== undefined) return a;
+    }
+  }
+  return null;
+}
+
 /** Read the `def:` (definition prose) for a key, with smart-quoting
  *  applied. Returns `undefined` when no def is set. Handlers that want
  *  to compose value+def with a comma do that themselves. */

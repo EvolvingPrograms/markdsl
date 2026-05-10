@@ -10,6 +10,7 @@ import {
   termLabel,
   fieldLabel,
   termDef,
+  termArticle,
 } from './lookup';
 
 describe('lookupValue', () => {
@@ -172,5 +173,43 @@ describe('termDef', () => {
   test('returns undefined for missing schema entry', () => {
     expect(termDef('agreement', {})).toBeUndefined();
     expect(termDef('agreement', undefined)).toBeUndefined();
+  });
+});
+
+describe('termArticle', () => {
+  test('returns null when schema is undefined / empty', () => {
+    expect(termArticle('agreement', undefined)).toBeNull();
+    expect(termArticle('agreement', {})).toBeNull();
+  });
+
+  test('returns null when entry has no article (opt-in policy)', () => {
+    expect(termArticle('agreement', { agreement: { term: 'Master Agreement' } })).toBeNull();
+  });
+
+  test('returns the explicit article when set', () => {
+    expect(termArticle('recording', { recording: { article: 'a' } })).toBe('a');
+    expect(termArticle('agreement', { agreement: { article: 'the' } })).toBe('the');
+  });
+
+  test('returns null when article is explicitly false (proper-noun)', () => {
+    expect(termArticle('disney', { disney: { article: false } })).toBeNull();
+  });
+
+  test('plural side prefers plural_article over article', () => {
+    expect(termArticle('recordings', {
+      recording: { article: 'a', plural_article: 'the' },
+    })).toBe('the');
+  });
+
+  test('plural side falls back to article when plural_article is unset', () => {
+    expect(termArticle('parties', { party: { article: 'the' } })).toBe('the');
+  });
+
+  test('singular side resolves through bidirectional lookup', () => {
+    expect(termArticle('recording', { recordings: { article: 'a' } })).toBe('a');
+  });
+
+  test('bare-string entry yields null', () => {
+    expect(termArticle('agreement', { agreement: 'string' })).toBeNull();
   });
 });
