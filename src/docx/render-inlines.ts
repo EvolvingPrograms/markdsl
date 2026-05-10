@@ -235,7 +235,32 @@ export function inlinesToRuns(
         break;
       }
 
-      // Note, Cite, Image, Link, RawInline: ignored.
+      case 'Link': {
+        // Pandoc Link: c = [attrs, contents: PandocInline[], [url, title]].
+        // Render the link text only — embedding clickable hyperlinks in
+        // docx requires building per-run external relationships, which
+        // is more machinery than the common citation/cross-ref use case
+        // warrants. Consumers that need real hyperlinks register a
+        // span handler on a `.hyperlink` class or post-process.
+        const [, linkContents] = node.c as [unknown, PandocInline[], unknown];
+        out.push(...inlinesToRuns(linkContents, style, config));
+        break;
+      }
+
+      case 'Cite': {
+        // Pandoc Cite: c = [citations[], inlines: PandocInline[]].
+        // The inlines are the source bracketed form (`[@key]`); when
+        // pandoc was invoked with --citeproc those inlines have
+        // already been replaced with the resolved citation prose
+        // (e.g. "(Kour and Saabne 2014)"). Without citeproc they
+        // round-trip the literal `[@key]` text — visible-by-default
+        // is the right behavior for partial setups.
+        const [, citeContents] = node.c as [unknown, PandocInline[]];
+        out.push(...inlinesToRuns(citeContents, style, config));
+        break;
+      }
+
+      // Note, Image, RawInline: ignored.
     }
   }
 
