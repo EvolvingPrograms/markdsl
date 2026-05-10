@@ -72,3 +72,4 @@ bun run typecheck # tsc --noEmit
 ## Status
 
 Pre-1.0. Building the contracts module-by-module before the legalese rewrite.
+
