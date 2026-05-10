@@ -8,3 +8,4 @@ export * from './markers';
 export * from './pandoc';
 export * from './ast';
 export * from './render';
+export * from './pipeline';
