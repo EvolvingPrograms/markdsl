@@ -7,13 +7,18 @@ to resolve a key into a label / definition / per-deal value.
 
 ## What lives here
 
-- **`types.ts`** — `Schema`, `SchemaEntry`, `FrontMatter`. The data model
-  every consumer agrees on.
+- **`types.ts`** — `Schema`, `SchemaEntry`, `FrontMatter`, `Values`. The
+  data model every consumer agrees on.
 - **`values.ts`** — value merging (caller > frontmatter > defaults),
-  missing-required detection, and reading defaults out of a schema.
-- **`terms.ts`** — English-language helpers: `termLabel(key)`, `fieldLabel(key)`,
-  plural derivation, `a`-vs-`an` selection. These are the building blocks
-  every marker handler reaches for.
+  missing-required detection, schema defaults, CLI flag parsing.
+- **`terms.ts`** — **pure** English-language helpers (no schema/values
+  arguments): `deriveLabel` (snake→Title), `smartLabel` (curly quotes),
+  `pluralizeLabel`, `pickAOrAn`, `cap`.
+- **`lookup.ts`** — **schema-aware** readers (take a schema or values
+  arg): `lookupValue` (case-insensitive), `formatValue` (any value →
+  prose string or null), `foldLines`, `termLabel`, `fieldLabel`,
+  `termDef`. The clean axis: pure transforms in `terms.ts`, parameterized
+  readers in `lookup.ts`.
 
 ## Schema model
 

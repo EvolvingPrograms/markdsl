@@ -1,9 +1,12 @@
-// Value reading and formatting utilities. Pure transforms — no schema
-// awareness, no marker semantics. The aim is to give marker handlers
-// a uniform "is there a usable string for this key?" answer so each
-// handler doesn't reimplement value coercion.
+// Schema/values readers. Each function takes a schema or values map
+// and produces a normalized string (or null for "no usable value").
+// Pure pure-language helpers — `cap`, `pickAOrAn`, etc. — live in
+// `terms.ts` and don't read schema/values.
 
-import type { Values } from './types';
+import type { Schema, SchemaEntry, Values } from './types';
+import { deriveLabel, smartLabel, pluralizeLabel } from './terms';
+
+// — Value lookup + formatting —
 
 /** Case-insensitive value lookup. Marker keys are normalized to
  *  lowercase by `parseMarker`; this helper accommodates value maps
@@ -63,4 +66,93 @@ export function formatValue(value: unknown): string | null {
  *  behavior on text that didn't go through `formatValue`. */
 export function foldLines(s: string): string {
   return s.replace(/\s+/g, ' ').trim();
+}
+
+// — Schema-side label / definition readers —
+//
+// These look up entry fields and apply normalization. The reads are
+// the standard markdsl schema vocabulary: `term`, `description`, `def`,
+// `plural`. DSLs that don't use one of these fields just don't call the
+// matching reader.
+
+/** Bidirectional sibling lookup — `parties` finds `party.plural` (or
+ *  pluralizes `party.term`); `recording` finds `recordings.term` (or
+ *  singularizes it). Lets the author declare a singular OR plural and
+ *  reference the other via the schema. */
+function resolveBidirectional(
+  key: string,
+  schema: Schema,
+): { entry: SchemaEntry; asPlural: boolean } | undefined {
+  // Try plural-side first: key ends in -ies/-es/-s, look for the singular.
+  const stems: string[] = [];
+  if (key.endsWith('ies')) stems.push(key.slice(0, -3) + 'y');
+  if (key.endsWith('es')) stems.push(key.slice(0, -2));
+  if (key.endsWith('s')) stems.push(key.slice(0, -1));
+  for (const s of stems) {
+    if (schema[s] !== undefined) return { entry: schema[s], asPlural: true };
+  }
+  // Otherwise treat `key` as singular and look for the plural.
+  const e = schema[key + 's'];
+  if (e !== undefined) return { entry: e, asPlural: false };
+  return undefined;
+}
+
+/** Resolve the display label for a defined-term reference. Resolution
+ *  order:
+ *    1. Direct schema hit (uses `entry.term`, smart-quoted).
+ *    2. Bidirectional sibling lookup — `parties` finds `party` and
+ *       returns the pluralized form; `recording` finds `recordings`
+ *       and returns the singularized form.
+ *    3. Snake → Title from the key itself. */
+export function termLabel(key: string, schema: Schema | undefined): string {
+  if (schema) {
+    const direct = schema[key];
+    if (typeof direct === 'object' && direct !== null && direct.term) {
+      return smartLabel(direct.term);
+    }
+    if (typeof direct === 'string') return deriveLabel(key);
+
+    const bi = resolveBidirectional(key, schema);
+    if (bi) {
+      const { entry, asPlural } = bi;
+      if (typeof entry === 'object' && entry !== null) {
+        const baseTerm = entry.term ? smartLabel(entry.term) : null;
+        if (asPlural) {
+          // `key` is the plural side; entry stores the singular.
+          if (entry.plural) return smartLabel(entry.plural);
+          return pluralizeLabel(baseTerm ?? deriveLabel(key.replace(/(ies|es|s)$/, '')));
+        } else {
+          // `key` is the singular side; strip the trailing plural off
+          // entry.term to recover the singular display.
+          if (baseTerm) {
+            return baseTerm.replace(/ies$/, 'y').replace(/es$/, '').replace(/s$/, '');
+          }
+        }
+      }
+    }
+  }
+  return deriveLabel(key);
+}
+
+/** Resolve the label for a form-field row. Form blocks prefer a longer
+ *  human descriptor when one is available — `description` wins over
+ *  `term` wins over snake → Title. */
+export function fieldLabel(key: string, schema: Schema | undefined): string {
+  const entry: SchemaEntry | undefined = schema?.[key];
+  if (typeof entry === 'object' && entry !== null) {
+    if (entry.description) return entry.description;
+    if (entry.term) return smartLabel(entry.term);
+  }
+  return deriveLabel(key);
+}
+
+/** Read the `def:` (definition prose) for a key, with smart-quoting
+ *  applied. Returns `undefined` when no def is set. Handlers that want
+ *  to compose value+def with a comma do that themselves. */
+export function termDef(key: string, schema: Schema | undefined): string | undefined {
+  const entry: SchemaEntry | undefined = schema?.[key];
+  if (typeof entry === 'object' && entry !== null && entry.def) {
+    return smartLabel(entry.def);
+  }
+  return undefined;
 }
