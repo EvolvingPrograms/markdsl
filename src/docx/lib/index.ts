@@ -3,4 +3,4 @@
 
 export * from './runs';
 export * from './build';
-export * from './defaults';
+export * as defaults from './defaults';
