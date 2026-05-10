@@ -61,8 +61,15 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          registry-url: 'https://registry.npmjs.org'
+          node-version: '24'
+          # Intentionally NO `registry-url` — that sets NODE_AUTH_TOKEN
+          # which would shadow npm's built-in OIDC flow for trusted
+          # publishers. Trusted publishing on npm CLI ≥11.5 detects
+          # the GitHub OIDC environment automatically when no token
+          # is set.
+
+      - name: Use npm ≥11.5 for trusted-publisher OIDC
+        run: npm install -g npm@latest
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
