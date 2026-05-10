@@ -1,0 +1,32 @@
+[
+  {
+    "family": "EB Garamond",
+    "files": [
+      "EBGaramond.ttf"
+    ]
+  },
+  {
+    "family": "Source Serif 4",
+    "files": [
+      "SourceSerif4.ttf"
+    ]
+  },
+  {
+    "family": "Crimson Pro",
+    "files": [
+      "CrimsonPro.ttf"
+    ]
+  },
+  {
+    "family": "PT Serif",
+    "files": [
+      "PTSerif-Regular.ttf"
+    ]
+  },
+  {
+    "family": "Libre Baskerville",
+    "files": [
+      "LibreBaskerville.ttf"
+    ]
+  }
+]
