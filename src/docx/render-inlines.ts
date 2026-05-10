@@ -175,6 +175,13 @@ export function inlinesToRuns(
         out.push(...inlinesToRuns(node.c as PandocInline[], style, config));
         break;
 
+      case 'SmallCaps':
+        // Pandoc emits SmallCaps directly for `[text]{.smallcaps}` —
+        // recurse with the smallCaps flag set; every leaf run picks
+        // it up via makeRun.
+        out.push(...inlinesToRuns(node.c as PandocInline[], { ...style, smallCaps: true }, config));
+        break;
+
       case 'Quoted': {
         const [quoteType, contents] = node.c as [{ t: string }, PandocInline[]];
         const open  = quoteType.t === 'DoubleQuote' ? '“' : '‘';
