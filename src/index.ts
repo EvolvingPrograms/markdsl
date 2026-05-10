@@ -5,3 +5,4 @@
 export * from './frontmatter';
 export * from './schema';
 export * from './markers';
+export * from './pandoc';
