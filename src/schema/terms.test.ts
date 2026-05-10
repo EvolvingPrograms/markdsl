@@ -31,12 +31,10 @@ describe('smartLabel', () => {
     expect(smartLabel('the "Customer"')).toBe('the “Customer”');
   });
 
-  test('curlifies straight single quotes when surrounded by non-words', () => {
-    expect(smartLabel("the 'Customer'")).toBe('the ‘Customer’');
-  });
-
-  test('leaves apostrophes inside words alone', () => {
-    expect(smartLabel("Writer's Share")).toBe("Writer's Share");
+  test('curlifies all single apostrophes (English convention)', () => {
+    expect(smartLabel("Writer's Share")).toBe('Writer’s Share');
+    expect(smartLabel("it's")).toBe('it’s');
+    expect(smartLabel("Publisher's")).toBe('Publisher’s');
   });
 
   test('passes through empty strings', () => {

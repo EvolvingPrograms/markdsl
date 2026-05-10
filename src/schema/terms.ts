@@ -15,16 +15,23 @@ export function deriveLabel(key: string): string {
 /** Light typographic clean-up applied to label-like strings. Intent:
  *  labels read naturally regardless of output format.
  *
- *  - Curly quotes: `"X"` → `“X”`, `'X'` → `‘X’` (smart quotes)
+ *  - Pair-quoted runs: `"X"` → `“X”` (smart double quotes).
+ *  - Single apostrophes: `'` → `’` (typographic apostrophe). Standard
+ *    English convention — possessive `Publisher's` becomes `Publisher’s`,
+ *    contractions `it's` become `it’s`. Pandoc's `+smart` extension
+ *    applies the same rule downstream, but labels are sometimes
+ *    rendered as-is (sig headers, grid columns) so we apply it at the
+ *    source.
  *
- *  Conservative on purpose — markdown/pandoc's `+smart` extension also
- *  does this downstream, but labels are rendered as-is in some contexts
- *  (sig headers, grid column labels) so we apply it at the source. */
+ *  Labels rarely contain straight ASCII single quotes for any reason
+ *  other than apostrophes — code/identifiers/keypress-style strings
+ *  don't appear in display labels. The blanket `'` → `’` substitution
+ *  is the right English-text default. */
 export function smartLabel(s: string): string {
   if (!s) return s;
   return s
     .replace(/"([^"]*)"/g, '“$1”')
-    .replace(/(?<!\w)'([^']*)'(?!\w)/g, '‘$1’');
+    .replace(/'/g, '’');
 }
 
 /** Pluralize an English label. Handles the common rules; irregulars
