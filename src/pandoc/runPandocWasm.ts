@@ -13,24 +13,26 @@ import type { PandocAst } from './types';
 // Local typing for the pandoc-wasm `convert` function. The package
 // ships no .d.ts; we type only the surface we use here. If pandoc-wasm
 // publishes official types, replace this with the imported type.
-type ConvertFn = (
+export type PandocWasmConvert = (
   options: { from?: string; to?: string; [k: string]: unknown },
   stdin?: string,
 ) => Promise<{ stdout: string; stderr: string; warnings: unknown[] }>;
 
-let cachedConvert: ConvertFn | null = null;
+let cachedConvert: PandocWasmConvert | null = null;
 
-async function loadConvert(): Promise<ConvertFn> {
+async function loadConvert(): Promise<PandocWasmConvert> {
   if (cachedConvert) return cachedConvert;
   try {
-    const mod = (await import('pandoc-wasm')) as unknown as { convert: ConvertFn };
+    const mod = (await import('pandoc-wasm')) as unknown as { convert: PandocWasmConvert };
     cachedConvert = mod.convert;
     return cachedConvert;
   } catch {
     throw new Error(
       'runPandocWasm: pandoc-wasm is not installed. It is an optional peer ' +
         'dependency — install it explicitly: `bun add pandoc-wasm` / ' +
-        '`npm i pandoc-wasm`.',
+        '`npm i pandoc-wasm`. ' +
+        'If you have it installed but markdsl can\'t resolve it (e.g. file: dep + symlinks), ' +
+        'pass the convert function explicitly via the second arg.',
     );
   }
 }
@@ -39,10 +41,17 @@ async function loadConvert(): Promise<ConvertFn> {
  *  pandoc. Same `PandocAst` shape as `runPandoc`, so the engine can be
  *  swapped freely.
  *
- *  Throws if `pandoc-wasm` isn't installed or the WASM module fails to
- *  load. */
-export async function runPandocWasm(body: string): Promise<PandocAst> {
-  const convert = await loadConvert();
-  const result = await convert({ from: DEFAULT_PANDOC_FROM, to: 'json' }, body);
+ *  Pass `convert` explicitly when markdsl's own dynamic `import('pandoc-wasm')`
+ *  can't resolve the package — typically when markdsl is consumed via a
+ *  `file:` dependency through symlinks. The consumer resolves pandoc-wasm
+ *  in its own location and hands the function in.
+ *
+ *  Throws if `pandoc-wasm` isn't installed and no `convert` is supplied. */
+export async function runPandocWasm(
+  body: string,
+  convert?: PandocWasmConvert,
+): Promise<PandocAst> {
+  const fn = convert ?? (await loadConvert());
+  const result = await fn({ from: DEFAULT_PANDOC_FROM, to: 'json' }, body);
   return JSON.parse(result.stdout) as PandocAst;
 }

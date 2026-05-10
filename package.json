@@ -25,6 +25,12 @@
     "js-yaml": "^4.1.1"
   },
   "peerDependencies": {
-    "typescript": "^5"
+    "typescript": "^5",
+    "pandoc-wasm": "^1.0.1"
+  },
+  "peerDependenciesMeta": {
+    "pandoc-wasm": {
+      "optional": true
+    }
   }
 }
