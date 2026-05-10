@@ -4,7 +4,7 @@
 
 import type { Paragraph, Table, TextRun } from 'docx';
 
-import type { Schema } from '../schema';
+import type { Schema, FrontMatter as MarkdslFrontMatter } from '../schema';
 
 /** The union of everything docx accepts as a section child, including nested arrays. */
 export type BodyEntry = Paragraph | Table | BodyEntry[];
@@ -72,6 +72,96 @@ export type SpanDocxHandler = (
   style: { bold: boolean; italic: boolean; underline: boolean; font?: string },
 ) => TextRun[];
 
+/** Base style overrides. All optional; fields not set fall back to
+ *  house defaults. Set in front-matter under `style:`. Sizes are in
+ *  twips unless noted (1440 twips = 1"); font sizes are in points.
+ *
+ *  This is the common typography surface — DSLs that need extra
+ *  fields (e.g. signature heights, theorem environments) extend
+ *  this interface in their own consumer code. */
+export interface DocStyle {
+  /** Font family name (e.g. "Times New Roman", "Garamond", "EB Garamond").
+   *  The font must be installed where the doc is opened, or Word will
+   *  substitute. Default "Times New Roman". */
+  font?: string;
+  /** Body font size in points. Default 12. */
+  size?: number;
+  /** Heading 1 font size in points. Default 14. */
+  h1_size?: number;
+  /** Heading 2 font size in points. Default 12. */
+  h2_size?: number;
+
+  /** Page margins. Each side in twips OR a single number that applies
+   *  to all sides. Default 1440 (1") on all sides. */
+  margin?: number | { top?: number; right?: number; bottom?: number; left?: number };
+
+  /** Body paragraph spacing. */
+  spacing?: {
+    /** Twips before each paragraph. Default 120. */
+    before?: number;
+    /** Twips after each paragraph. Default 120. */
+    after?: number;
+    /** Line height in 240ths (240 = single, 360 = 1.5, 480 = double).
+     *  Default 360 (1.5 lines). */
+    line?: number;
+  };
+
+  list?: {
+    /** Top-level numbered list: marker→body horizontal distance, in twips.
+     *  Default 540 (~0.375"). */
+    indent?: number;
+    /** Lettered sub-list: body indent in twips. Default 900. */
+    sub_indent?: number;
+    /** Lettered sub-list: marker→body distance. Default 360. */
+    sub_hanging?: number;
+    /** Render top-level numbers bold (matches a `**Title.**` lead-in).
+     *  Default true. Set false for plain numbering. */
+    bold_marker?: boolean;
+  };
+  body?: {
+    /** First-line indent (twips) applied when document-level `indent: true`
+     *  or a `::: {.indent}` Div is in effect. Default 540 (~0.375"). */
+    indent?: number;
+  };
+  /** Title (H1) styling overrides. */
+  title?: {
+    /** Title alignment. Default 'center'. */
+    alignment?: 'left' | 'center' | 'right' | 'justified';
+  };
+
+  /** Vertical breathing room produced by `::: {.gap}` blocks. Empty
+   *  `::: {.gap} :::` emits a blank paragraph with this much before/after
+   *  spacing; non-empty `{.gap}` adds `before` (× 2) to the first child
+   *  paragraph. Default 240 twips. */
+  gap?: number;
+
+  /** Multi-column page layout (academic-journal style). Supply a number
+   *  for the simple "N equal columns" case (default 720-twip gap), or an
+   *  object for full control. Applies document-wide. */
+  columns?: number | {
+    count: number;
+    /** Gap between columns in twips. Default 720 (~0.5"). */
+    space?: number;
+    /** Render a vertical separator line between columns. */
+    separate?: boolean;
+    /** All columns same width. Default true. */
+    equalWidth?: boolean;
+  };
+}
+
+/** Front-matter extensions read by the docx orchestrator. DSLs can
+ *  extend further; the renderer reads only these three. */
+export interface DocxFrontMatter extends MarkdslFrontMatter {
+  title?: string;
+  output?: string;
+  /** Document-level first-line indent on every body paragraph (legal
+   *  block style). Equivalent to wrapping the entire body in
+   *  `::: {.indent}`. */
+  indent?: boolean;
+  /** Per-document style overrides. */
+  style?: DocStyle;
+}
+
 /** Renderer configuration. All fields are optional — pass an empty
  *  config and you get a working (if DSL-vocabulary-free) renderer. */
 export interface DocxRenderConfig {
@@ -82,4 +172,11 @@ export interface DocxRenderConfig {
   markerEmitter?: MarkerEmitter;
   /** Map of Span class → handler. Useful for class-based inline styles. */
   spanHandlers?: Record<string, SpanDocxHandler>;
+
+  /** Optional text-level marker resolver. The renderer calls this on
+   *  the front-matter title before assembly, so DSLs that use markers
+   *  in titles (e.g. `BOARD RESOLUTIONS OF {{=COMPANY}}`) can resolve
+   *  them with the same registry that drives the body. Default:
+   *  identity. */
+  resolveText?: (text: string, ctx: { schema?: Schema; values: Record<string, unknown> }) => string;
 }
