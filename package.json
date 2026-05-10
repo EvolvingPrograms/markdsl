@@ -35,9 +35,7 @@
     }
   },
   "dependencies": {
-    "docx": "^9.6.1"
-  },
-  "patchedDependencies": {
-    "docx@9.6.1": "patches/docx@9.6.1.patch"
+    "docx": "^9.6.1",
+    "jszip": "^3.10.1"
   }
 }

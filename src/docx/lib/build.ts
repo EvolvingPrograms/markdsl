@@ -24,6 +24,7 @@ import {
 } from './defaults';
 import { h1 } from '../blocks';
 import type { BodyEntry } from '../types';
+import { sanitizeFontFilenames } from './sanitize-fonts';
 
 /** Per-document style overrides — front-matter `style:` block. All fields
  *  optional; missing fields fall back to house defaults. */
@@ -361,9 +362,12 @@ const composeDocument = ({ title, body, headerBody, style }: BuildArgs) => {
  *  involvement. Use this in the browser, in serverless handlers that
  *  return a Response, or anywhere you'd rather hold the document in
  *  memory than land it on disk. */
-export const buildToBuffer = (args: BuildArgs): Promise<Buffer> => {
+export const buildToBuffer = async (args: BuildArgs): Promise<Buffer> => {
   const doc = composeDocument(args);
-  return Packer.toBuffer(doc);
+  const buf = await Packer.toBuffer(doc);
+  // Post-process: rename embedded font zip entries to filename-safe
+  // sequence numbers. No-op when no fonts are embedded.
+  return sanitizeFontFilenames(buf);
 };
 
 /** Write `body` (flat or nested) to `output` as a .docx; resolves to the output path. */
