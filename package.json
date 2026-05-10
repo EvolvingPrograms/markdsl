@@ -4,6 +4,10 @@
   "type": "module",
   "license": "MIT",
   "author": "Evolving Programs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EvolvingPrograms/markdsl.git"
+  },
   "main": "src/index.ts",
   "module": "src/index.ts",
   "types": "src/index.ts",
