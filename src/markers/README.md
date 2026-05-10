@@ -22,6 +22,14 @@ different prefix maps.
   walks the source for `{{...}}` patterns and dispatches.
 - [`substitute.test.ts`](./substitute.test.ts) — end-to-end substitution
   tests with synthetic registries.
+- [`parse.ts`](./parse.ts) — `stripArticlePrefix`, `analyzeCaseSignals`,
+  `parseMarker` aggregate. Turns marker text into a structural shape so
+  handlers don't reimplement article / case-signal parsing.
+- [`parse.test.ts`](./parse.test.ts) — parser piece-by-piece tests.
+- [`compose.ts`](./compose.ts) — `pickArticle`, `applyTextCase`,
+  `emitDefine`, `emitInline`. Composition helpers for the
+  parenthetical-define and inline-styled patterns. Opt-in.
+- [`compose.test.ts`](./compose.test.ts) — composition tests.
 - [`index.ts`](./index.ts) — barrel.
 
 ## The contract

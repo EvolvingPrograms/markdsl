@@ -3,3 +3,4 @@
 export * from './types';
 export * from './values';
 export * from './terms';
+export * from './lookup';
